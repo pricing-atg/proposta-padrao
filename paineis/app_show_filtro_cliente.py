@@ -25,13 +25,14 @@ def show_app_filtro_cliente():
     
     variavel_periodo_referencia = carregar_variavel_periodo_referencia()
     variavel_tipo_veiculo = carregar_variavel_tipo_veiculo()
+    variavel_restricao = carregar_variavel_tipo_categoria_veiculo()
     base_regiao = carregar_base_regiao()
     variavel_ano_modelo = carregar_variavel_ano_modelo()
     variavel_valor = carregar_variavel_valor()
     
     # Filtros para selecionar o período de referência e os tipos de veículos
     with st.container():
-        coluna01, coluna02 = st.columns(2)        
+        coluna01, coluna02, coluna03 = st.columns(3)        
 
         with coluna01:
             # Filtro com select_slider usando datas
@@ -43,11 +44,19 @@ def show_app_filtro_cliente():
             )
             
         with coluna02:
-            tipos_veiculos_selecionados = st.multiselect(
+            tipo_veiculo_selecionado = st.multiselect(
                 "Tipo de Veículo",
                 options=sorted(variavel_tipo_veiculo),
                 default=sorted(variavel_tipo_veiculo),  # Todos selecionados como padrão
                 placeholder="Selecione os tipos de veículo"
+            )
+            
+        with coluna03:
+            tipo_veiculo_restricao = st.multiselect(
+                "Categorias de Restrição",
+                options=sorted(variavel_restricao),
+                default=None,
+                placeholder="Selecione as Restrições dos Veículos"
             )
     
     # Filtros para selecionar as regiões a serem consideradas
@@ -100,14 +109,13 @@ def show_app_filtro_cliente():
         coluna01, coluna02 = st.columns(2)
 
         with coluna01:
-            ano_atual = datetime.now().year
-            anos_disponiveis = sorted(variavel_ano_modelo)
-            anos_filtrados = [ano for ano in anos_disponiveis if ano >= ano_atual - 30]
+            
+            variavel_ano_modelo = sorted(variavel_ano_modelo)
 
             ano_modelo_min, ano_modelo_max = st.select_slider(
                 "Ano do Modelo",
-                options=anos_filtrados,
-                value=(anos_filtrados[0], anos_filtrados[-1])
+                options=variavel_ano_modelo,
+                value=(variavel_ano_modelo[0], variavel_ano_modelo[-1])
             )
 
         with coluna02:
@@ -121,5 +129,42 @@ def show_app_filtro_cliente():
                 value=(valores_intervalados[0], valores_intervalados[-1]),
                 format_func=lambda x: f"R$ {x:,.0f}".replace(",", ".")
             )
+            
+    with st.container():
+        coluna01, coluna02 = st.columns(2)
+
+        with coluna01:
+            # Upload do arquivo com as montadoras famílias
+            arquivo_mf = st.file_uploader("Importar arquivo com Montadoras Famílias (Excel ou .txt)", type=["xlsx", "xls", "txt"])
+            
+
+        with coluna02:
+            # Campo para colar os valores manualmente
+            texto_colado = st.text_area("Ou cole as Montadoras Famílias abaixo (uma por linha):", height=150)
     
-    return data_inicio, data_fim, tipos_veiculos_selecionados, ufs_selecionadas, ano_modelo_min, ano_modelo_max, valor_min, valor_max
+
+    # Lista final para filtrar
+    lista_mf_filtrar = []
+    
+    # Se um arquivo foi enviado
+    if arquivo_mf is not None:
+        try:
+            if arquivo_mf.name.endswith(".txt"):
+                conteudo = arquivo_mf.read().decode("utf-8")
+                lista_mf_filtrar = [linha.strip() for linha in conteudo.splitlines() if linha.strip()]
+            elif arquivo_mf.name.endswith((".xlsx", ".xls")):
+                df_arquivo = pd.read_excel(arquivo_mf)
+                primeira_coluna = df_arquivo.columns[0]
+                lista_mf_filtrar = df_arquivo[primeira_coluna].dropna().astype(str).tolist()
+        except Exception as e:
+            st.error(f"Erro ao ler o arquivo: {e}")
+
+    # Se o usuário colou manualmente
+    if texto_colado:
+        colados = [linha.strip() for linha in texto_colado.splitlines() if linha.strip()]
+        lista_mf_filtrar.extend(colados)
+
+    # Remover duplicados
+    lista_mf_filtrar = list(set(lista_mf_filtrar))
+    
+    return data_inicio, data_fim, tipo_veiculo_selecionado, tipo_veiculo_restricao, ufs_selecionadas, ano_modelo_min, ano_modelo_max, valor_min, valor_max, lista_mf_filtrar
