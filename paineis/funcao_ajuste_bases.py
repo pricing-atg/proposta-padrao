@@ -244,4 +244,43 @@ def show_resumo_base_despesa(
     # Arredondar se desejar:
     base_despesa["Despesa"] = base_despesa["Despesa"].round(2)
     
+    
+    
+    # Condição especial para "Pneu"
+    if "Pneu" in tipo_coberturas:
+        # Converte parâmetros em DataFrame e filtra apenas o Script "Pneu"
+        df_parametros_pneu = pd.DataFrame(parametros["lmi_franquia"])
+        df_pneu = df_parametros_pneu[df_parametros_pneu["Script"] == "Pneu"].copy()
+
+        # Renomeia as colunas de LMI e Franquia
+        df_pneu = df_pneu.rename(columns={
+            "LMI (R$)": "LMI (R$) - Pneu",
+            "Franquia (R$)": "Franquia (R$) - Pneu"
+        })
+
+        # Faz o join com a base principal
+        base_despesa = base_despesa.merge(
+            df_pneu[["Tipo de Veículo", "LMI (R$) - Pneu", "Franquia (R$) - Pneu"]],
+            left_on="TIPO_VEICULO",
+            right_on="Tipo de Veículo",
+            how="left"
+        ).drop(columns=["Tipo de Veículo"])
+
+        # Cálculo da Despesa Pneu
+        franquia_pneu = base_despesa["Franquia (R$) - Pneu"]
+        lmi_pneu = base_despesa["LMI (R$) - Pneu"]
+
+        # Valor base para o pneu
+        valor_base_pneu = np.maximum(base_despesa["Valor Ajustado CMS"] - franquia_pneu, 0)
+
+        # Se LMI for NA ou 0, usa valor base, senão o mínimo entre LMI e valor base
+        base_despesa["Despesa Pneu"] = np.where(
+            (lmi_pneu.isna()) | (lmi_pneu == 0),
+            valor_base_pneu,
+            np.minimum(lmi_pneu, valor_base_pneu)
+        )
+
+        # Arredondamento final
+        base_despesa["Despesa Pneu"] = base_despesa["Despesa Pneu"].round(2)
+    
     return base_despesa

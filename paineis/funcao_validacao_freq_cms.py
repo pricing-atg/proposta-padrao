@@ -157,6 +157,70 @@ def show_resultado_script(base_receita, base_despesa, tipo_veiculo, nome_script,
                 "CMS": total_cms,
                 "Frequência": total_freq
             })
+            
+            st.divider()
+            st.markdown("#### Análise de Franquia")
+            
+            despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
+            
+            # Agrupa as OSs com franquia acima de 70%
+            total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
+
+            # Agrupa o total geral de OSs por script
+            total_os_script = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "Total OSs"})
+                
+            # Calcula o total geral de OSs
+            total_geral_os = total_os_script["Total OSs"].sum()
+
+            # Cria a coluna de representatividade (%)
+            total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+            # Junta os dois dataframes
+            total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+            
+            # Cria a coluna de representatividade (%) de franquia acima de 70% 
+            total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+            
+            # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+            total_valor_franquia = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Franquia Ajustada": "sum"})
+
+            # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+            total_valor_negociado = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Valor Ajustado CMS": "sum"})
+
+            # Junta os dois dataframes
+            total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+            total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+            
+            # Exibe no Streamlit
+            total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+            
+            # Ordena do maior para o menor
+            total_script = total_script.sort_values(by="Total OSs", ascending=False)
+            
+            total_script = total_script.copy()
+            
+            total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+            total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+            
+            total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+            total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+            
+            
+            total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+            total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+            total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+            
+            st.dataframe(total_script, hide_index=True)            
 
     df_resumo_geral = pd.DataFrame(resultados_totais)
     return df_resumo_geral
@@ -616,7 +680,69 @@ def validacao_funcao_freq_cms_rlp(base_receita, base_despesa, parametros):
                     "Frequência": freq
                 })
                 
-                st.write("")
+                st.divider()
+                st.markdown("#### Análise de Franquia")
+                
+                despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
+                
+                # Agrupa as OSs com franquia acima de 70%
+                total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
+
+                # Agrupa o total geral de OSs por script
+                total_os_script = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "Total OSs"})
+                    
+                # Calcula o total geral de OSs
+                total_geral_os = total_os_script["Total OSs"].sum()
+
+                # Cria a coluna de representatividade (%)
+                total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+                # Junta os dois dataframes
+                total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+                
+                # Cria a coluna de representatividade (%) de franquia acima de 70% 
+                total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+                
+                # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+                total_valor_franquia = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Franquia Ajustada": "sum"})
+
+                # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+                total_valor_negociado = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Valor Ajustado CMS": "sum"})
+
+                # Junta os dois dataframes
+                total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+                total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+                
+                # Exibe no Streamlit
+                total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+                
+                # Ordena do maior para o menor
+                total_script = total_script.sort_values(by="Total OSs", ascending=False)
+                
+                total_script = total_script.copy()
+                
+                total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+                total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+                
+                total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+                total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+                
+                
+                total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+                total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+                total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+                
+                st.dataframe(total_script, hide_index=True)   
 
             else:
                 
@@ -767,7 +893,69 @@ def validacao_funcao_freq_cms_rlp(base_receita, base_despesa, parametros):
                     "Frequência": total_freq
                 })
                 
-                st.write("")
+                st.divider()
+                st.markdown("#### Análise de Franquia")
+                
+                despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
+                
+                # Agrupa as OSs com franquia acima de 70%
+                total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
+
+                # Agrupa o total geral de OSs por script
+                total_os_script = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "Total OSs"})
+                    
+                # Calcula o total geral de OSs
+                total_geral_os = total_os_script["Total OSs"].sum()
+
+                # Cria a coluna de representatividade (%)
+                total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+                # Junta os dois dataframes
+                total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+                
+                # Cria a coluna de representatividade (%) de franquia acima de 70% 
+                total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+                
+                # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+                total_valor_franquia = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Franquia Ajustada": "sum"})
+
+                # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+                total_valor_negociado = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Valor Ajustado CMS": "sum"})
+
+                # Junta os dois dataframes
+                total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+                total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+                
+                # Exibe no Streamlit
+                total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+                
+                # Ordena do maior para o menor
+                total_script = total_script.sort_values(by="Total OSs", ascending=False)
+                
+                total_script = total_script.copy()
+                
+                total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+                total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+                
+                total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+                total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+                
+                
+                total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+                total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+                total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+                
+                st.dataframe(total_script, hide_index=True)   
                 
     # 📦 Converte a lista em DataFrame
     df_resumo_geral = pd.DataFrame(resultados_totais)
@@ -1012,7 +1200,69 @@ def validacao_funcao_freq_cms_rps(base_receita, base_despesa, parametros):
                     "Frequência": total_freq_agravada
                 })
                 
-                st.write("")
+                st.divider()
+                st.markdown("#### Análise de Franquia")
+                
+                despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
+                
+                # Agrupa as OSs com franquia acima de 70%
+                total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
+
+                # Agrupa o total geral de OSs por script
+                total_os_script = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "Total OSs"})
+                    
+                # Calcula o total geral de OSs
+                total_geral_os = total_os_script["Total OSs"].sum()
+
+                # Cria a coluna de representatividade (%)
+                total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+                # Junta os dois dataframes
+                total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+                
+                # Cria a coluna de representatividade (%) de franquia acima de 70% 
+                total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+                
+                # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+                total_valor_franquia = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Franquia Ajustada": "sum"})
+
+                # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+                total_valor_negociado = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Valor Ajustado CMS": "sum"})
+
+                # Junta os dois dataframes
+                total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+                total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+                
+                # Exibe no Streamlit
+                total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+                
+                # Ordena do maior para o menor
+                total_script = total_script.sort_values(by="Total OSs", ascending=False)
+                
+                total_script = total_script.copy()
+                
+                total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+                total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+                
+                total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+                total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+                
+                
+                total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+                total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+                total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+                
+                st.dataframe(total_script, hide_index=True)
                 
             else:
                 st.divider()
@@ -1044,7 +1294,69 @@ def validacao_funcao_freq_cms_rps(base_receita, base_despesa, parametros):
                     "Frequência": total_freq
                 })
                 
-                st.write("")
+                st.divider()
+                st.markdown("#### Análise de Franquia")
+                
+                despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
+                
+                # Agrupa as OSs com franquia acima de 70%
+                total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
+
+                # Agrupa o total geral de OSs por script
+                total_os_script = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Qtd. OS's": "sum"}) \
+                    .rename(columns={"Qtd. OS's": "Total OSs"})
+                    
+                # Calcula o total geral de OSs
+                total_geral_os = total_os_script["Total OSs"].sum()
+
+                # Cria a coluna de representatividade (%)
+                total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+                # Junta os dois dataframes
+                total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+                
+                # Cria a coluna de representatividade (%) de franquia acima de 70% 
+                total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+                
+                # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+                total_valor_franquia = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Franquia Ajustada": "sum"})
+
+                # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+                total_valor_negociado = despesa_final_cms \
+                    .groupby("Script Franquia", as_index=False) \
+                    .agg({"Valor Ajustado CMS": "sum"})
+
+                # Junta os dois dataframes
+                total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+                total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+                
+                # Exibe no Streamlit
+                total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+                
+                # Ordena do maior para o menor
+                total_script = total_script.sort_values(by="Total OSs", ascending=False)
+                
+                total_script = total_script.copy()
+                
+                total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+                total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+                
+                total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+                total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+                
+                
+                total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+                total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+                total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+                
+                st.dataframe(total_script, hide_index=True)
                 
     df_resumo_geral = pd.DataFrame(resultados_totais)
     
@@ -1095,10 +1407,10 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
 
             # Agrupamento por seguradora
             receita_cia = receita_filtrada.groupby("Seguradora", as_index=False)["ITENS"].sum().rename(columns={"ITENS": "Qtd. Itens"})
-            despesa_cia = despesa_filtrada.groupby("Seguradora", as_index=False).agg({"Qtd. OS's": "sum", "Despesa": "sum"})
+            despesa_cia = despesa_filtrada.groupby("Seguradora", as_index=False).agg({"Qtd. OS's": "sum", "Despesa Pneu": "sum"})
             resultado_cia = pd.merge(receita_cia, despesa_cia, on="Seguradora", how="left").fillna(0)
 
-            resultado_cia["CMS"] = resultado_cia["Despesa"] / resultado_cia["Qtd. OS's"].replace(0, np.nan)
+            resultado_cia["CMS"] = resultado_cia["Despesa Pneu"] / resultado_cia["Qtd. OS's"].replace(0, np.nan)
             resultado_cia["Frequência"] = (resultado_cia["Qtd. OS's"] * 12) / resultado_cia["Qtd. Itens"].replace(0, np.nan)
             resultado_cia = resultado_cia.fillna(0)
             resultado_cia["Selecionar"] = True
@@ -1107,7 +1419,7 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
             resultado_cia_exibe = resultado_cia.copy()
             resultado_cia_exibe["Qtd. Itens"] = resultado_cia["Qtd. Itens"].apply(f_int)
             resultado_cia_exibe["Qtd. OS's"] = resultado_cia["Qtd. OS's"].apply(f_int)
-            resultado_cia_exibe["Despesa"] = resultado_cia["Despesa"].apply(f_valor)
+            resultado_cia_exibe["Despesa Pneu"] = resultado_cia["Despesa Pneu"].apply(f_valor)
             resultado_cia_exibe["CMS"] = resultado_cia["CMS"].apply(f_valor)
             resultado_cia_exibe["Frequência"] = resultado_cia["Frequência"].apply(f_perc)
 
@@ -1122,10 +1434,10 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
                 )
             with col2:
                 resultado_cia_exibe_cms_editado = st.data_editor(
-                    resultado_cia_exibe[["Seguradora", "Qtd. OS's", "Despesa", "CMS", "Selecionar"]],
+                    resultado_cia_exibe[["Seguradora", "Qtd. OS's", "Despesa Pneu", "CMS", "Selecionar"]],
                     column_config={"Selecionar": st.column_config.CheckboxColumn("Selecionar")},
                     hide_index=True,
-                    disabled=["Seguradora", "Qtd. OS's", "Despesa", "CMS"],
+                    disabled=["Seguradora", "Qtd. OS's", "Despesa Pneu", "CMS"],
                     key=f"data_editor_seguradora_cms_{nome_script}_{tipo}"
                 )
 
@@ -1141,9 +1453,9 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
             receita_mes = receita_mes_filtrada.groupby("AnoMes", as_index=False)["ITENS"].sum().rename(columns={"ITENS": "Qtd. Itens"})
 
             def gerar_resultado_mes(despesa_mes, label):
-                df = despesa_mes.groupby("AnoMes", as_index=False).agg({"Qtd. OS's": "sum", "Despesa": "sum"})
+                df = despesa_mes.groupby("AnoMes", as_index=False).agg({"Qtd. OS's": "sum", "Despesa Pneu": "sum"})
                 resultado = pd.merge(receita_mes, df, on="AnoMes", how="left").fillna(0)
-                resultado["CMS"] = resultado["Despesa"] / resultado["Qtd. OS's"].replace(0, np.nan)
+                resultado["CMS"] = resultado["Despesa Pneu"] / resultado["Qtd. OS's"].replace(0, np.nan)
                 resultado["Frequência"] = (resultado["Qtd. OS's"] * 12) / resultado["Qtd. Itens"].replace(0, np.nan)
                 resultado = resultado.fillna(0)
                 resultado["Selecionar"] = True
@@ -1157,7 +1469,7 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
                 df_exibe = df.copy()
                 df_exibe["Qtd. Itens"] = df["Qtd. Itens"].apply(f_int)
                 df_exibe["Qtd. OS's"] = df["Qtd. OS's"].apply(f_int)
-                df_exibe["Despesa"] = df["Despesa"].apply(f_valor)
+                df_exibe["Despesa Pneu"] = df["Despesa Pneu"].apply(f_valor)
                 df_exibe["CMS"] = df["CMS"].apply(f_valor)
                 df_exibe["Frequência"] = df["Frequência"].apply(f_perc)
                 return df_exibe
@@ -1175,10 +1487,10 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
             with col2:
                 resultado_mes_exibe_cms = formatar_resultado_exibe(resultado_mes_cms)
                 resultado_mes_exibe_cms_editado = st.data_editor(
-                    resultado_mes_exibe_cms[["AnoMes", "Qtd. OS's", "Despesa", "CMS", "Selecionar"]],
+                    resultado_mes_exibe_cms[["AnoMes", "Qtd. OS's", "Despesa Pneu", "CMS", "Selecionar"]],
                     column_config={"Selecionar": st.column_config.CheckboxColumn("Selecionar")},
                     hide_index=True,
-                    disabled=["AnoMes", "Qtd. OS's", "Despesa", "CMS"],
+                    disabled=["AnoMes", "Qtd. OS's", "Despesa Pneu", "CMS"],
                     key=f"data_editor_periodo_cms_{nome_script}_{tipo}"
                 )
 
@@ -1197,7 +1509,7 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
             
             # Resumo final CMS
             total_os_cms = despesa_final_cms["Qtd. OS's"].sum()
-            total_despesa_cms = despesa_final_cms["Despesa"].sum()
+            total_despesa_cms = despesa_final_cms["Despesa Pneu"].sum()
             total_cms = total_despesa_cms / total_os_cms if total_os_cms > 0 else 0
             
             
@@ -1230,8 +1542,72 @@ def validacao_funcao_freq_cms_pneu(base_receita, base_despesa, parametros):
                 "CMS": total_cms,
                 "Frequência": total_freq
             })
+                
+            st.divider()
+            st.markdown("#### Análise de Franquia")
             
-            st.write("")
+            despesa_final_cms["Script Franquia"] = "Pneu"
+                
+            despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia (R$) - Pneu"]/despesa_final_cms["Valor Ajustado CMS"]
+            
+            # Agrupa as OSs com franquia acima de 70%
+            total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
+
+            # Agrupa o total geral de OSs por script
+            total_os_script = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "Total OSs"})
+                
+            # Calcula o total geral de OSs
+            total_geral_os = total_os_script["Total OSs"].sum()
+
+            # Cria a coluna de representatividade (%)
+            total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+            # Junta os dois dataframes
+            total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+            
+            # Cria a coluna de representatividade (%) de franquia acima de 70% 
+            total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+            
+            # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+            total_valor_franquia = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Franquia (R$) - Pneu": "sum"})
+
+            # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+            total_valor_negociado = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Valor Ajustado CMS": "sum"})
+
+            # Junta os dois dataframes
+            total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+            total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia (R$) - Pneu"]/total_valor_script["Valor Ajustado CMS"]
+            
+            # Exibe no Streamlit
+            total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+            
+            # Ordena do maior para o menor
+            total_script = total_script.sort_values(by="Total OSs", ascending=False)
+            
+            total_script = total_script.copy()
+            
+            total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+            total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+            
+            total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+            total_script["Franquia (R$) - Pneu"] = total_script["Franquia (R$) - Pneu"].apply(f_valor)
+            
+            
+            total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+            total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+            total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+            
+            st.dataframe(total_script, hide_index=True)
     
     # 📦 Converte a lista em DataFrame
     df_resumo_geral = pd.DataFrame(resultados_totais)
@@ -1386,12 +1762,12 @@ def validacao_funcao_freq_cms_adas(base_receita, base_despesa, parametros):
         col2b.metric("Valor de CMS", f_valor(total_cms))
         col3b.metric("Frequência anual estimada", f_perc(total_freq))
 
-    df_resumo_geral = pd.DataFrame([{
-        "Script": "ADAS",
-        "Tipo Veículo": "Auto",
-        "CMS": total_cms,
-        "Frequência": total_freq
-    }])
+        df_resumo_geral = pd.DataFrame([{
+            "Script": "ADAS",
+            "Tipo Veículo": "Auto",
+            "CMS": total_cms,
+            "Frequência": total_freq
+        }])
 
     return df_resumo_geral
 
@@ -1580,12 +1956,6 @@ def validacao_funcao_freq_cms_polimento_farol(base_receita, base_despesa):
                 "Frequência": total_freq
             })
             
-            
-            
-            st.write("")
-            
-            
-
     # 📦 Converte a lista em DataFrame
     df_resumo_geral = pd.DataFrame(resultados_totais)
 
@@ -1778,12 +2148,6 @@ def validacao_funcao_freq_cms_reparo_parabrisa(base_receita, base_despesa):
                 "Frequência": total_freq
             })
             
-            
-            
-            st.write("")
-            
-            
-
     # 📦 Converte a lista em DataFrame
     df_resumo_geral = pd.DataFrame(resultados_totais)
 
@@ -2406,12 +2770,72 @@ def validacao_funcao_freq_cms_troca_pc(base_receita, base_despesa):
                 "Frequência": total_freq
             })
             
+            st.divider()
+            st.markdown("#### Análise de Franquia")
             
+            despesa_final_cms["Script Franquia"] = "Troca - PC"
             
-            st.write("")
+            despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
             
-            
+            # Agrupa as OSs com franquia acima de 70%
+            total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
 
+            # Agrupa o total geral de OSs por script
+            total_os_script = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "Total OSs"})
+                
+            # Calcula o total geral de OSs
+            total_geral_os = total_os_script["Total OSs"].sum()
+
+            # Cria a coluna de representatividade (%)
+            total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+            # Junta os dois dataframes
+            total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+            
+            # Cria a coluna de representatividade (%) de franquia acima de 70% 
+            total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+            
+            # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+            total_valor_franquia = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Franquia Ajustada": "sum"})
+
+            # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+            total_valor_negociado = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Valor Ajustado CMS": "sum"})
+
+            # Junta os dois dataframes
+            total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+            total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+            
+            # Exibe no Streamlit
+            total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+            
+            # Ordena do maior para o menor
+            total_script = total_script.sort_values(by="Total OSs", ascending=False)
+            
+            total_script = total_script.copy()
+            
+            total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+            total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+            
+            total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+            total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+            
+            
+            total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+            total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+            total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+            
+            st.dataframe(total_script, hide_index=True)
+            
     # 📦 Converte a lista em DataFrame
     df_resumo_geral = pd.DataFrame(resultados_totais)
 
@@ -2600,12 +3024,72 @@ def validacao_funcao_freq_cms_reparo_pc(base_receita, base_despesa):
                 "Frequência": total_freq
             })
             
+            st.divider()
+            st.markdown("#### Análise de Franquia")
             
+            despesa_final_cms["Script Franquia"] = "Reparo - PC"
             
-            st.write("")
+            despesa_final_cms["% Franquia"] = despesa_final_cms["Franquia Ajustada"]/despesa_final_cms["Valor Ajustado CMS"]
             
-            
+            # Agrupa as OSs com franquia acima de 70%
+            total_os_70porc = despesa_final_cms[despesa_final_cms["% Franquia"] > 0.7] \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "OSs Franquia > 70%"})
 
+            # Agrupa o total geral de OSs por script
+            total_os_script = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Qtd. OS's": "sum"}) \
+                .rename(columns={"Qtd. OS's": "Total OSs"})
+                
+            # Calcula o total geral de OSs
+            total_geral_os = total_os_script["Total OSs"].sum()
+
+            # Cria a coluna de representatividade (%)
+            total_os_script["% Representatividade OSs"] = (total_os_script["Total OSs"] / total_geral_os)
+
+            # Junta os dois dataframes
+            total_os_script = pd.merge(total_os_script, total_os_70porc, on="Script Franquia", how="left").fillna(0)
+            
+            # Cria a coluna de representatividade (%) de franquia acima de 70% 
+            total_os_script["% Representatividade OSs Franquia > 70%"] = (total_os_script["OSs Franquia > 70%"] / total_os_script["Total OSs"])
+            
+            # Agrupa os valores da franquia para realizar a representatividade da franquia por script
+            total_valor_franquia = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Franquia Ajustada": "sum"})
+
+            # Agrupa os valores do valor total negociado para realizar a representatividade da franquia por script
+            total_valor_negociado = despesa_final_cms \
+                .groupby("Script Franquia", as_index=False) \
+                .agg({"Valor Ajustado CMS": "sum"})
+
+            # Junta os dois dataframes
+            total_valor_script = pd.merge(total_valor_negociado, total_valor_franquia, on="Script Franquia", how="left").fillna(0)
+            total_valor_script["% Representatividade de Franquia"] = total_valor_script["Franquia Ajustada"]/total_valor_script["Valor Ajustado CMS"]
+            
+            # Exibe no Streamlit
+            total_script = pd.merge(total_valor_script, total_os_script, on="Script Franquia", how="left").fillna(0)
+            
+            # Ordena do maior para o menor
+            total_script = total_script.sort_values(by="Total OSs", ascending=False)
+            
+            total_script = total_script.copy()
+            
+            total_script["Total OSs"] = total_script["Total OSs"].apply(f_int)
+            total_script["OSs Franquia > 70%"] = total_script["OSs Franquia > 70%"].apply(f_int)
+            
+            total_script["Valor Ajustado CMS"] = total_script["Valor Ajustado CMS"].apply(f_valor)
+            total_script["Franquia Ajustada"] = total_script["Franquia Ajustada"].apply(f_valor)
+            
+            
+            total_script["% Representatividade de Franquia"] = total_script["% Representatividade de Franquia"].apply(f_perc)
+            total_script["% Representatividade OSs"] = total_script["% Representatividade OSs"].apply(f_perc)
+            total_script["% Representatividade OSs Franquia > 70%"] = total_script["% Representatividade OSs Franquia > 70%"].apply(f_perc)
+            
+            st.dataframe(total_script, hide_index=True)
+            
     # 📦 Converte a lista em DataFrame
     df_resumo_geral = pd.DataFrame(resultados_totais)
 

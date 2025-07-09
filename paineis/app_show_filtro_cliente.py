@@ -63,31 +63,37 @@ def show_app_filtro_cliente():
     with st.container():
         coluna01, coluna02 = st.columns(2)
 
-        # Define o valor a ser excluído dos filtros (mas não dos dados finais)
+        # Valor a ser excluído dos filtros (mas não dos dados finais)
         valor_excluido = "UF_NULL"
 
-        # Remove 'UF_NULL' da base para os filtros, mas não altera a base original
+        # Remove valores inválidos apenas para os filtros
         base_filtrada = base_regiao[
             (base_regiao["UF"] != valor_excluido) &
             (base_regiao["REGIAO"] != valor_excluido)
         ]
 
         with coluna01:
-            # Cria opções de regiões com 'BRASIL' + regiões únicas (sem UF_NULL)
+            # Cria opções de regiões com "BRASIL" + únicas da base filtrada
             regioes_disponiveis = ['BRASIL'] + sorted(base_filtrada["REGIAO"].dropna().unique())
-            regiao_selecionada = st.selectbox("Região", options=regioes_disponiveis)
+            regiao_selecionada = st.multiselect(
+                "Região", 
+                options=regioes_disponiveis,
+                placeholder="Selecione as Regiões"
+                )
 
         with coluna02:
-            if regiao_selecionada == 'BRASIL':
+            # Define as UFs disponíveis conforme a seleção da região
+            if 'BRASIL' in regiao_selecionada or not regiao_selecionada:
                 ufs_disponiveis = sorted(base_filtrada["UF"].dropna().unique())
             else:
                 ufs_disponiveis = sorted(
-                    base_filtrada[base_filtrada["REGIAO"] == regiao_selecionada]["UF"].dropna().unique()
+                    base_filtrada[base_filtrada["REGIAO"].isin(regiao_selecionada)]["UF"].dropna().unique()
                 )
 
-            # Adiciona a opção 'TODAS' no início da lista
+            # Adiciona a opção "TODAS"
             ufs_opcoes = ['TODAS'] + ufs_disponiveis
 
+            # Multiselect de UFs
             ufs_selecionadas = st.multiselect(
                 "UFs",
                 options=ufs_opcoes,
@@ -95,12 +101,12 @@ def show_app_filtro_cliente():
                 placeholder="Selecione as UFs"
             )
 
-            # Lógica para "TODAS"
+            # Se "TODAS" for selecionado, considera todas as UFs da base original (com ou sem UF_NULL)
             if 'TODAS' in ufs_selecionadas:
-                regiao_selecionada = 'BRASIL'
-                # Aqui usamos a base original para incluir até mesmo o UF_NULL se estiver presente
+                regiao_selecionada = ['BRASIL']
                 ufs_selecionadas = sorted(base_regiao["UF"].dropna().unique())
-            
+
+            # Garante que o valor_excluido esteja presente para preservar os dados finais
             ufs_selecionadas.append(valor_excluido)
 
     

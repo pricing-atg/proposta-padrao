@@ -1,7 +1,7 @@
 from PIL import Image
 import streamlit as st
 from authentication.login import login_user
-from paineis.painel_pricing import *
+from paineis.painel_proposta_padrao import *
 
 # Configura página
 st.set_page_config(
@@ -26,10 +26,18 @@ if auth_status:
 
     # Exibe painel conforme tipo de usuário
     usuario_tipo = st.session_state.get("email")
-    if usuario_tipo == "pricing":
-        show_painel_precificacao_pricing()
+    
+    # Dicionário para mapear emails autorizados aos tipos de usuários
+    usuarios_autorizados = {
+        "produtos": "produtos",
+        "pricing": "pricing"
+    }
+
+    # Verifica se o usuário atual é um dos autorizados
+    if usuario_tipo in usuarios_autorizados.values():
+        show_painel_proposta_padrao()
     else:
-        st.error("Tipo de usuário desconhecido.")
+        st.warning("Acesso restrito. Usuário não autorizado ou sessão inválida.")
 
 elif auth_status is False:
     st.error("Usuário ou senha incorretos.")
