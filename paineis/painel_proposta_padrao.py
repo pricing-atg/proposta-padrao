@@ -41,6 +41,7 @@ def show_painel_proposta_padrao():
             ufs_selecionadas, ano_modelo_min, ano_modelo_max, valor_min, valor_max, 
             lista_mf_filtrar, parametros
         )
+        
         st.session_state.base_despesa = show_resumo_base_despesa(
             tipo_coberturas,
             data_inicio, data_fim, tipo_veiculo_selecionado, tipo_veiculo_restricao, 
